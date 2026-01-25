@@ -22,6 +22,7 @@ cp .env-example .env
    - `API_KEY` - Your API key
    - `MODELS` - Comma-separated list of models to test
    - `PROMPT` - The prompt to send to all models
+   - `SYSTEM_PROMPT` - System prompt that defines the AI behavior
 
 ## Usage
 

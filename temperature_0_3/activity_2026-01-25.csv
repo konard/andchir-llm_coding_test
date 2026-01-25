@@ -1,4 +1,6 @@
 generation_id,created_at,cost_total,cost_web_search,cost_cache,cost_file_processing,byok_usage_inference,tokens_prompt,tokens_completion,tokens_reasoning,tokens_cached,model_permaslug,provider_name,variant,cancelled,streamed,user,finish_reason_raw,finish_reason_normalized,generation_time_ms,time_to_first_token_ms,app_name,api_key_name
+gen-1769345979-jSeSrskZbwgaPgrXJp4G,2026-01-25 12:59:39.050,0.047017,,,0,0.047017,78,4692,320,0,openai/gpt-5.1-codex-max-20251204,OpenAI,standard,false,true,,completed,stop,36499,3936,,coding_test
+gen-1769345830-mXYvtLCOv3dyptEeyPB9,2026-01-25 12:57:10.710,0.171832,,,,0.171832,78,12264,360,0,openai/gpt-5.2-20251211,OpenAI,standard,false,true,,completed,stop,142493,7065,,coding_test
 gen-1769345096-E4hFNHd1zUS20f0bTvKV,2026-01-25 12:44:56.286,0.001682,,0,0,0,96,5577,0,3,xiaomi/mimo-v2-flash-20251210,AtlasCloud,standard,false,true,,stop,stop,36330,635,,coding_test
 gen-1769344737-C5t18jvDrPeoGFPkbip8,2026-01-25 12:38:57.921,0.054276,,-0.001521,0,0,754,3569,390,676,x-ai/grok-4-07-09,xAI,standard,false,true,,completed,stop,49625,9282,,coding_test
 gen-1769344688-s7mPo3QoHbxWfAWfOZZR,2026-01-25 12:38:08.084,0.042262,,,0,0.042262,78,3009,11,0,openai/gpt-5.2-codex-20260114,OpenAI,standard,false,true,,completed,stop,48855,1172,,coding_test

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tetris</title>
+<style>
+:root{
+  --bg:#0d0f1a;
+  --panel:#161a2a;
+  --accent:#4af2c5;
+  --accent2:#836bff;
+  --text:#e8ecf3;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',system-ui;}
+body,html{width:100%;height:100%;}
+body{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:radial-gradient(circle at 20% 20%, #1c2135, #0d0f1a 60%);
+  color:var(--text);
+  overflow:hidden;
+}
+.container{
+  display:grid;
+  grid-template-columns:minmax(240px,1fr) auto minmax(240px,1fr);
+  gap:16px;
+  width: min(1200px, 96vw);
+  height: min(780px, 96vh);
+  padding:16px;
+}
+.panel{
+  background:linear-gradient(145deg, #1a1f33, #0f1220);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.main{
+  position:relative;
+  background:linear-gradient(180deg, #111527 0%, #0a0d18 100%);
+  border-radius:18px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+  overflow:hidden;
+}
+#gameCanvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+.info{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.block{
+  padding:12px;
+  border-radius:12px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.title{opacity:0.7;font-size:13px;letter-spacing:0.5px;text-transform:uppercase;}
+.value{font-size:28px;font-weight:700;}
+.controls{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(100px,1fr));
+  gap:10px;
+  margin-top:auto;
+}
+.btn{
+  cursor:pointer;
+  padding:12px;
+  text-align:center;
+  border-radius:10px;
+  background:linear-gradient(135deg, #1d243b, #13192c);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 12px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+  transition:transform 0.1s ease, box-shadow 0.2s ease;
+  user-select:none;
+}
+.btn:active{
+  transform:translateY(2px);
+  box-shadow:0 8px 20px rgba(0,0,0,0.3);
+}
+.next-wrap{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+#nextCanvas{
+  width:100px;
+  height:100px;
+  background:#0e1222;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.mobile-controls{
+  display:none;
+}
+@media(max-width:1000px){
+  .container{
+    grid-template-columns:1fr;
+    grid-template-rows:auto 1fr auto;
+    height: auto;
+    width:96vw;
+  }
+  .info{
+    flex-direction:row;
+    flex-wrap:wrap;
+  }
+}
+@media(max-width:700px){
+  .container{
+    width:100vw;
+    padding:8px;
+  }
+  .controls{display:none;}
+  .mobile-controls{
+    display:grid;
+    grid-template-areas:
+    "left rotate right"
+    "drop down down";
+    gap:10px;
+    margin-top:8px;
+  }
+  .mobile-controls .btn{
+    padding:14px;
+    font-size:16px;
+  }
+  .btn.left{grid-area:left;}
+  .btn.rotate{grid-area:rotate;}
+  .btn.right{grid-area:right;}
+  .btn.down{grid-area:down;}
+  .btn.drop{grid-area:drop;}
+}
+.badge{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:8px;
+  background:rgba(74,242,197,0.08);
+  color:var(--accent);
+  font-weight:600;
+  font-size:13px;
+  border:1px solid rgba(74,242,197,0.2);
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="panel info">
+    <div class="block">
+      <div class="title">Счёт</div>
+      <div class="value" id="score">0</div>
+    </div>
+    <div class="block">
+      <div class="title">Линии</div>
+      <div class="value" id="lines">0</div>
+    </div>
+    <div class="block">
+      <div class="title">Уровень</div>
+      <div class="value" id="level">1</div>
+    </div>
+    <div class="block next-wrap">
+      <div class="badge">Next</div>
+      <canvas id="nextCanvas" width="100" height="100"></canvas>
+    </div>
+    <div class="controls">
+      <div class="btn" id="startBtn">Старт / Пауза</div>
+      <div class="btn" id="dropBtn">Сброс (Пробел)</div>
+      <div class="btn" id="restartBtn">Заново</div>
+      <div class="btn" id="soundBtn">Звук выкл.</div>
+    </div>
+  </div>
+  <div class="main">
+    <canvas id="gameCanvas" width="300" height="600"></canvas>
+  </div>
+  <div class="panel">
+    <div class="block">
+      <div class="title">Управление</div>
+      <div style="margin-top:8px;line-height:1.7;">
+        ←/→ — движение<br>
+        ↑ — вращение<br>
+        ↓ — ускорить<br>
+        Пробел — уронить<br>
+        P — пауза
+      </div>
+    </div>
+  </div>
+</div>
+<div class="mobile-controls panel">
+  <div class="btn left">←</div>
+  <div class="btn rotate">⟳</div>
+  <div class="btn right">→</div>
+  <div class="btn drop">⤓</div>
+  <div class="btn down">↓</div>
+</div>
+
+<script>
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+const nextCanvas=document.getElementById('nextCanvas');
+const nctx=nextCanvas.getContext('2d');
+let w=10,h=20;
+let grid=createMatrix(w,h);
+const colors=["#000",
+  "#51eaea","#f1f542","#ff9f1c","#ef476f","#5afc7f","#58a6ff","#c084fc"
+];
+const shapes=[
+  [],
+  [[1,1,1,1]],
+  [[2,2],[2,2]],
+  [[0,3,0],[3,3,3]],
+  [[0,4,4],[4,4,0]],
+  [[5,5,0],[0,5,5]],
+  [[6,0,0],[6,6,6]],
+  [[0,0,7],[7,7,7]],
+];
+let dropCounter=0;
+let dropInterval=1000;
+let lastTime=0;
+let score=0, lines=0, level=1;
+let gamePaused=true;
+let gameOver=false;
+let soundOn=false;
+
+const sounds={
+  move:new Audio("data:audio/wav;base64,UklGRmQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YYwAAACAgICAwMDAgICAgICAgICAgICAgICAwMDAgICAgMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="),
+  clear:new Audio("data:audio/wav;base64,UklGRoQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YYQAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI")
+};
+
+function createMatrix(w,h){
+  const m=[];
+  while(h--) m.push(new Array(w).fill(0));
+  return m;
+}
+function createPiece(type){
+  return shapes[type].map(r=>r.slice());
+}
+let bag=[];
+function nextType(){
+  if(bag.length===0){
+    bag=[1,2,3,4,5,6,7];
+    for(let i=bag.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [bag[i],bag[j]]=[bag[j],bag[i]];
+    }
+  }
+  return bag.pop();
+}
+let player={
+  pos:{x:0,y:0},
+  matrix:null,
+  next:null,
+};
+player.next=nextType();
+resetPiece();
+
+function resetPiece(){
+  player.matrix=createPiece(player.next);
+  player.next=nextType();
+  player.pos.y=0;
+  player.pos.x=(w>>1)-Math.ceil(player.matrix[0].length/2);
+  if(collide(grid,player)){
+    grid=createMatrix(w,h);
+    score=0;lines=0;level=1;dropInterval=1000;
+    gameOver=true;gamePaused=true;
+  }
+  updatePanels();
+  drawNext();
+}
+function collide(grid,p){
+  const m=p.matrix;const o=p.pos;
+  for(let y=0;y<m.length;y++){
+    for(let x=0;x<m[y].length;x++){
+      if(m[y][x]!==0 && (grid[y+o.y] && grid[y+o.y][x+o.x])!==0){
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function merge(grid,p){
+  p.matrix.forEach((row,y)=>{
+    row.forEach((v,x)=>{
+      if(v!==0){
+        grid[y+p.pos.y][x+p.pos.x]=v;
+      }
+    });
+  });
+}
+function rotate(matrix,dir){
+  for(let y=0;y<matrix.length;y++){
+    for(let x=0;x<y;x++){
+      [matrix[x][y],matrix[y][x]]=[matrix[y][x],matrix[x][y]];
+    }
+  }
+  if(dir>0) matrix.forEach(row=>row.reverse());
+  else matrix.reverse();
+}
+function playerRotate(dir){
+  const pos=player.pos.x;
+  let offset=1;
+  rotate(player.matrix,dir);
+  while(collide(grid,player)){
+    player.pos.x+=offset;
+    offset=-(offset+(offset>0?1:-1));
+    if(offset>player.matrix[0].length){
+      rotate(player.matrix,-dir);
+      player.pos.x=pos;
+      return;
+    }
+  }
+  playSound('move');
+}
+function playerDrop(){
+  while(!collide(grid,player)) player.pos.y++;
+  player.pos.y--;
+  drop();
+}
+function drop(){
+  merge(grid,player);
+  clearLines();
+  resetPiece();
+}
+function playerMove(dir){
+  player.pos.x+=dir;
+  if(collide(grid,player)) player.pos.x-=dir;
+  else playSound('move');
+}
+function clearLines(){
+  let rowCount=1;
+  outer:for(let y=grid.length-1;y>=0;y--){
+    if(grid[y].every(v=>v!==0)){
+      const row=grid.splice(y,1)[0].fill(0);
+      grid.unshift(row);
+      y++;
+      score+=rowCount*100;
+      lines+=1;
+      rowCount*=2;
+      playSound('clear');
+    }
+  }
+  level=1+Math.floor(lines/10);
+  dropInterval=Math.max(120,1000-(level-1)*80);
+  updatePanels();
+}
+function updatePanels(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('lines').textContent=lines;
+  document.getElementById('level').textContent=level;
+}
+function drawMatrix(matrix,offset,scale){
+  for(let y=0;y<matrix.length;y++){
+    for(let x=0;x<matrix[y].length;x++){
+      const v=matrix[y][x];
+      if(v!==0){
+        const px=(x+offset.x)*scale;
+        const py=(y+offset.y)*scale;
+        ctx.fillStyle=colors[v];
+        const grd=ctx.createLinearGradient(px,py,px+scale,py+scale);
+        grd.addColorStop(0,"#ffffff33");
+        grd.addColorStop(1, colors[v]);
+        ctx.fillStyle=grd;
+        ctx.fillRect(px,py,scale,scale);
+        ctx.strokeStyle="rgba(255,255,255,0.08)";
+        ctx.lineWidth=2;
+        ctx.strokeRect(px+1,py+1,scale-2,scale-2);
+      }
+    }
+  }
+}
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const scale=Math.floor(Math.min(canvas.width/w, canvas.height/h));
+  const ox=Math.floor((canvas.width-w*scale)/2);
+  const oy=Math.floor((canvas.height-h*scale)/2);
+  // grid background
+  ctx.fillStyle="rgba(255,255,255,0.02)";
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      ctx.fillRect(ox+x*scale,oy+y*scale,scale-1,scale-1);
+    }
+  }
+  ctx.save();
+  ctx.translate(ox,oy);
+  drawMatrix(grid,{x:0,y:0},scale);
+  drawMatrix(player.matrix,player.pos,scale);
+  ctx.restore();
+  if(gameOver){
+    ctx.fillStyle="rgba(0,0,0,0.65)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#fff";
+    ctx.font="bold "+(scale*1.1)+"px Inter";
+    ctx.textAlign="center";
+    ctx.fillText("Game Over", canvas.width/2, canvas.height/2);
+  }
+}
+function drawNext(){
+  nctx.clearRect(0,0,nextCanvas.width,nextCanvas.height);
+  const m=createPiece(player.next);
+  const scale=22;
+  const offset={x:Math.floor((4-m[0].length)/2), y:Math.floor((4-m.length)/2)};
+  drawMatrixNext(m,offset,scale);
+}
+function drawMatrixNext(matrix,offset,scale){
+  for(let y=0;y<matrix.length;y++){
+    for(let x=0;x<matrix[y].length;x++){
+      const v=matrix[y][x];
+      if(v!==0){
+        const px=(x+offset.x)*scale;
+        const py=(y+offset.y)*scale;
+        const grd=nctx.createLinearGradient(px,py,px+scale,py+scale);
+        grd.addColorStop(0,"#ffffff33");
+        grd.addColorStop(1, colors[v]);
+        nctx.fillStyle=grd;
+        nctx.fillRect(px+6,py+6,scale-4,scale-4);
+        nctx.strokeStyle="rgba(255,255,255,0.1)";
+        nctx.lineWidth=2;
+        nctx.strokeRect(px+6,py+6,scale-4,scale-4);
+      }
+    }
+  }
+}
+function update(time=0){
+  const delta=time-lastTime;
+  lastTime=time;
+  if(!gamePaused && !gameOver){
+    dropCounter+=delta;
+    if(dropCounter>dropInterval){
+      player.pos.y++;
+      if(collide(grid,player)){
+        player.pos.y--;
+        drop();
+      }
+      dropCounter=0;
+    }
+  }
+  draw();
+  requestAnimationFrame(update);
+}
+function resizeCanvas(){
+  const main=document.querySelector('.main');
+  const rect=main.getBoundingClientRect();
+  canvas.width=rect.width;
+  canvas.height=rect.height;
+}
+window.addEventListener('resize',()=>{
+  resizeCanvas();
+});
+resizeCanvas();
+updatePanels();
+drawNext();
+update();
+
+document.addEventListener('keydown',e=>{
+  if(e.code==="ArrowLeft"){playerMove(-1);}
+  else if(e.code==="ArrowRight"){playerMove(1);}
+  else if(e.code==="ArrowDown"){
+    player.pos.y++;
+    if(collide(grid,player)) player.pos.y--;
+  }
+  else if(e.code==="ArrowUp"){playerRotate(1);}
+  else if(e.code==="Space"){e.preventDefault(); playerDrop();}
+  else if(e.code==="KeyP"){togglePause();}
+});
+function togglePause(){
+  if(gameOver){gameOver=false; resetPiece();}
+  gamePaused=!gamePaused;
+}
+document.getElementById('startBtn').onclick=()=>togglePause();
+document.getElementById('dropBtn').onclick=()=>playerDrop();
+document.getElementById('restartBtn').onclick=()=>{
+  grid=createMatrix(w,h);
+  score=0;lines=0;level=1;dropInterval=1000;
+  gameOver=false;
+  resetPiece();
+  gamePaused=false;
+};
+document.getElementById('soundBtn').onclick=()=>{
+  soundOn=!soundOn;
+  document.getElementById('soundBtn').textContent=soundOn?"Звук вкл.":"Звук выкл.";
+};
+
+function playSound(name){
+  if(!soundOn) return;
+  const s=sounds[name].cloneNode();
+  s.volume=0.2;
+  s.play();
+}
+
+// Mobile controls
+const mControls=document.querySelector('.mobile-controls');
+if(mControls){
+  mControls.querySelector('.left').onclick=()=>playerMove(-1);
+  mControls.querySelector('.right').onclick=()=>playerMove(1);
+  mControls.querySelector('.rotate').onclick=()=>playerRotate(1);
+  mControls.querySelector('.down').onclick=()=>{
+    player.pos.y++;
+    if(collide(grid,player)) player.pos.y--;
+  };
+  mControls.querySelector('.drop').onclick=()=>playerDrop();
+}
+
+</script>
+</body>
+</html>

@@ -29,7 +29,7 @@ def create_html_file(model_name, response_content, output_dir='output'):
     return filepath
 
 
-def call_llm_api(base_url, api_key, model, prompt):
+def call_llm_api(base_url, api_key, model, prompt, system_prompt):
     """Make API call to LLM service."""
     headers = {
         'Authorization': f'Bearer {api_key}',
@@ -41,7 +41,7 @@ def call_llm_api(base_url, api_key, model, prompt):
         'messages': [
             {
                 'role': 'system',
-                'content': 'Ты профессиональный программист-дизайнер HTML/CSS/JavaScript. Ты только пишешь код, без лишнего текста.'
+                'content': system_prompt
             },
             {
                 'role': 'user',
@@ -78,6 +78,7 @@ def main():
     api_key = os.getenv('API_KEY')
     models_str = os.getenv('MODELS')
     prompt = os.getenv('PROMPT')
+    system_prompt = os.getenv('SYSTEM_PROMPT')
 
     # Validate required parameters
     if not base_url:
@@ -96,6 +97,10 @@ def main():
         print("Error: PROMPT not found in .env file")
         sys.exit(1)
 
+    if not system_prompt:
+        print("Error: SYSTEM_PROMPT not found in .env file")
+        sys.exit(1)
+
     # Parse models list
     models = [model.strip() for model in models_str.split(',')]
 
@@ -108,7 +113,7 @@ def main():
         print(f"[{i}/{len(models)}] Processing model: {model}")
 
         # Call API
-        response_content = call_llm_api(base_url, api_key, model, prompt)
+        response_content = call_llm_api(base_url, api_key, model, prompt, system_prompt)
 
         # Create HTML file
         filepath = create_html_file(model, response_content)

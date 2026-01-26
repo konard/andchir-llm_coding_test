@@ -27,8 +27,8 @@ jobs:
           # Create deployment directory
           mkdir -p deploy
 
-          # Copy static files from temperature_0_3 to deploy directory
-          cp -r temperature_0_3/* deploy/
+          # Copy static files from results to deploy directory
+          cp -r results/* deploy/
 
           # Create .nojekyll file to prevent Jekyll processing
           touch deploy/.nojekyll

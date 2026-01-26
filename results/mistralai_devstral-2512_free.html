@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris</title>
+    <style>
+        :root {
+            --primary-color: #6c5ce7;
+            --secondary-color: #a29bfe;
+            --background-color: #f0f0f0;
+            --grid-color: #e0e0e0;
+            --text-color: #333;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px var(--shadow-color);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background-color: var(--grid-color);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        .info-box h2 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        .info-box p {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .tetris-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 1px;
+            background-color: var(--grid-color);
+            border-radius: 5px;
+            padding: 5px;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            width: 25px;
+            height: 25px;
+            background-color: white;
+            border-radius: 2px;
+        }
+
+        .filled {
+            background-color: var(--primary-color);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .controls h2 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #5649c0;
+        }
+
+        button:active {
+            background-color: #4a3fb0;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 100;
+            display: none;
+        }
+
+        .game-over h2 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .game-over button {
+            font-size: 20px;
+            padding: 15px 30px;
+        }
+
+        @media (max-width: 480px) {
+            .tetris-grid {
+                width: 100%;
+            }
+
+            .cell {
+                width: 20px;
+                height: 20px;
+            }
+
+            .control-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Tetris</h1>
+        <div class="game-info">
+            <div class="info-box">
+                <h2>Score</h2>
+                <p id="score">0</p>
+            </div>
+            <div class="info-box">
+                <h2>Level</h2>
+                <p id="level">1</p>
+            </div>
+            <div class="info-box">
+                <h2>Lines</h2>
+                <p id="lines">0</p>
+            </div>
+        </div>
+        <div class="tetris-grid" id="grid"></div>
+        <div class="controls">
+            <h2>Controls</h2>
+            <div class="control-buttons">
+                <button id="left">Left</button>
+                <button id="rotate">Rotate</button>
+                <button id="right">Right</button>
+                <button id="down">Down</button>
+                <button id="start">Start</button>
+                <button id="pause">Pause</button>
+            </div>
+        </div>
+    </div>
+    <div class="game-over" id="gameOver">
+        <h2>Game Over</h2>
+        <p>Your score: <span id="finalScore">0</span></p>
+        <button id="restart">Restart</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const grid = document.getElementById('grid');
+            const scoreDisplay = document.getElementById('score');
+            const levelDisplay = document.getElementById('level');
+            const linesDisplay = document.getElementById('lines');
+            const gameOverDisplay = document.getElementById('gameOver');
+            const finalScoreDisplay = document.getElementById('finalScore');
+
+            const width = 10;
+            const height = 20;
+            let score = 0;
+            let level = 1;
+            let lines = 0;
+            let timerId;
+            let isPaused = false;
+            let isGameOver = false;
+
+            // Create the grid
+            function createGrid() {
+                for (let i = 0; i < height * width; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    grid.appendChild(cell);
+                }
+            }
+
+            createGrid();
+
+            const cells = Array.from(grid.querySelectorAll('.cell'));
+
+            // Tetromino shapes
+            const shapes = [
+                [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], // I
+                [[1, 0, 0], [1, 1, 1], [0, 0, 0]], // J
+                [[0, 0, 1], [1, 1, 1], [0, 0, 0]], // L
+                [[1, 1], [1, 1]], // O
+                [[0, 1, 1], [1, 1, 0], [0, 0, 0]], // S
+                [[0, 1, 0], [1, 1, 1], [0, 0, 0]], // T
+                [[1, 1, 0], [0, 1, 1], [0, 0, 0]]  // Z
+            ];
+
+            const colors = [
+                'cyan', 'blue', 'orange', 'yellow', 'green', 'purple', 'red'
+            ];
+
+            let currentPosition = 4;
+            let currentRotation = 0;
+            let currentShape = Math.floor(Math.random() * shapes.length);
+            let current = shapes[currentShape][currentRotation];
+
+            // Draw the tetromino
+            function draw() {
+                current.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value !== 0) {
+                            const index = (currentPosition + x) + (y * width);
+                            if (index >= 0 && index < cells.length) {
+                                cells[index].classList.add('filled');
+                                cells[index].style.backgroundColor = colors[currentShape];
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Undraw the tetromino
+            function undraw() {
+                current.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value !== 0) {
+                            const index = (currentPosition + x) + (y * width);
+                            if (index >= 0 && index < cells.length) {
+                                cells[index].classList.remove('filled');
+                                cells[index].style.backgroundColor = '';
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Move the tetromino
+            function move(direction) {
+                if (isPaused || isGameOver) return;
+
+                undraw();
+                currentPosition += direction;
+
+                if (checkCollision()) {
+                    currentPosition -= direction;
+                    if (direction === 1) {
+                        lock();
+                    }
+                }
+
+                draw();
+            }
+
+            // Rotate the tetromino
+            function rotate() {
+                if (isPaused || isGameOver) return;
+
+                undraw();
+                currentRotation = (currentRotation + 1) % current.length;
+                current = shapes[currentShape][currentRotation];
+
+                if (checkCollision()) {
+                    currentRotation = (currentRotation - 1 + current.length) % current.length;
+                    current = shapes[currentShape][currentRotation];
+                }
+
+                draw();
+            }
+
+            // Check for collisions
+            function checkCollision() {
+                for (let y = 0; y < current.length; y++) {
+                    for (let x = 0; x < current[y].length; x++) {
+                        if (current[y][x] !== 0) {
+                            const index = (currentPosition + x) + (y * width);
+                            if (index >= cells.length || index < 0 ||
+                                (cells[index].classList.contains('filled') && !cells[index].style.backgroundColor)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+
+            // Lock the tetromino in place
+            function lock() {
+                current.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value !== 0) {
+                            const index = (currentPosition + x) + (y * width);
+                            if (index >= 0 && index < cells.length) {
+                                cells[index].classList.add('filled');
+                                cells[index].style.backgroundColor = colors[currentShape];
+                            }
+                        }
+                    });
+                });
+
+                // Check for completed lines
+                checkLines();
+
+                // Generate new tetromino
+                currentShape = Math.floor(Math.random() * shapes.length);
+                currentRotation = 0;
+                current = shapes[currentShape][currentRotation];
+                currentPosition = 4;
+
+                // Check if game over
+                if (checkCollision()) {
+                    gameOver();
+                }
+
+                draw();
+            }
+
+            // Check for completed lines
+            function checkLines() {
+                let linesCleared = 0;
+
+                for (let y = height - 1; y >= 0; y--) {
+                    let isLineComplete = true;
+
+                    for (let x = 0; x < width; x++) {
+                        const index = x + (y * width);
+                        if (!cells[index].classList.contains('filled') || cells[index].style.backgroundColor === '') {
+                            isLineComplete = false;
+                            break;
+                        }
+                    }
+
+                    if (isLineComplete) {
+                        linesCleared++;
+
+                        // Remove the line
+                        for (let x = 0; x < width; x++) {
+                            const index = x + (y * width);
+                            cells[index].classList.remove('filled');
+                            cells[index].style.backgroundColor = '';
+                        }
+
+                        // Move all lines above down
+                        for (let i = y - 1; i >= 0; i--) {
+                            for (let x = 0; x < width; x++) {
+                                const currentIndex = x + (i * width);
+                                const nextIndex = x + ((i + 1) * width);
+
+                                if (cells[currentIndex].classList.contains('filled')) {
+                                    cells[nextIndex].classList.add('filled');
+                                    cells[nextIndex].style.backgroundColor = cells[currentIndex].style.backgroundColor;
+                                    cells[currentIndex].classList.remove('filled');
+                                    cells[currentIndex].style.backgroundColor = '';
+                                }
+                            }
+                        }
+
+                        y++; // Check the same row again
+                    }
+                }
+
+                if (linesCleared > 0) {
+                    // Update score
+                    const points = [0, 40, 100, 300, 1200];
+                    score += points[linesCleared] * level;
+                    lines += linesCleared;
+
+                    // Update level
+                    level = Math.floor(lines / 10) + 1;
+
+                    // Update display
+                    scoreDisplay.textContent = score;
+                    levelDisplay.textContent = level;
+                    linesDisplay.textContent = lines;
+
+                    // Increase speed
+                    clearInterval(timerId);
+                    timerId = setInterval(moveDown, 1000 / level);
+                }
+            }
+
+            // Game over
+            function gameOver() {
+                isGameOver = true;
+                clearInterval(timerId);
+                finalScoreDisplay.textContent = score;
+                gameOverDisplay.style.display = 'flex';
+            }
+
+            // Move down automatically
+            function moveDown() {
+                if (!isPaused && !isGameOver) {
+                    move(width);
+                }
+            }
+
+            // Start the game
+            function startGame() {
+                if (isGameOver) {
+                    // Reset the game
+                    cells.forEach(cell => {
+                        cell.classList.remove('filled');
+                        cell.style.backgroundColor = '';
+                    });
+
+                    score = 0;
+                    level = 1;
+                    lines = 0;
+                    scoreDisplay.textContent = score;
+                    levelDisplay.textContent = level;
+                    linesDisplay.textContent = lines;
+                    gameOverDisplay.style.display = 'none';
+                }
+
+                isGameOver = false;
+                isPaused = false;
+
+                if (timerId) {
+                    clearInterval(timerId);
+                }
+
+                currentShape = Math.floor(Math.random() * shapes.length);
+                currentRotation = 0;
+                current = shapes[currentShape][currentRotation];
+                currentPosition = 4;
+
+                draw();
+                timerId = setInterval(moveDown, 1000 / level);
+            }
+
+            // Pause the game
+            function pauseGame() {
+                isPaused = !isPaused;
+                if (isPaused) {
+                    clearInterval(timerId);
+                } else {
+                    timerId = setInterval(moveDown, 1000 / level);
+                }
+            }
+
+            // Event listeners
+            document.getElementById('left').addEventListener('click', () => move(-1));
+            document.getElementById('right').addEventListener('click', () => move(1));
+            document.getElementById('down').addEventListener('click', () => move(width));
+            document.getElementById('rotate').addEventListener('click', rotate);
+            document.getElementById('start').addEventListener('click', startGame);
+            document.getElementById('pause').addEventListener('click', pauseGame);
+            document.getElementById('restart').addEventListener('click', startGame);
+
+            // Keyboard controls
+            document.addEventListener('keydown', (e) => {
+                if (isGameOver) return;
+
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        move(-1);
+                        break;
+                    case 'ArrowRight':
+                        move(1);
+                        break;
+                    case 'ArrowDown':
+                        move(width);
+                        break;
+                    case 'ArrowUp':
+                        rotate();
+                        break;
+                    case ' ':
+                        pauseGame();
+                        break;
+                }
+            });
+
+            // Start the game initially
+            startGame();
+        });
+    </script>
+</body>
+</html>

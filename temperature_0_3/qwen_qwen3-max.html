@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тетрис</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .game-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .board-container {
+            position: relative;
+        }
+        
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            gap: 1px;
+            width: 300px;
+            height: 600px;
+            background: #0d0d1a;
+            border: 2px solid #4a4a8a;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .cell {
+            background: #1e1e3f;
+            transition: background 0.1s ease;
+        }
+        
+        .cell.I { background: #00f0f0; }
+        .cell.J { background: #0000f0; }
+        .cell.L { background: #f0a000; }
+        .cell.O { background: #f0f000; }
+        .cell.S { background: #00f000; }
+        .cell.T { background: #a000f0; }
+        .cell.Z { background: #f00000; }
+        
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 180px;
+            padding: 20px;
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 12px;
+            border: 1px solid #4a4a8a;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .panel-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #4fc3f7;
+            text-align: center;
+        }
+        
+        #next-piece {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2px;
+            width: 120px;
+            height: 120px;
+            background: #0d0d1a;
+            border-radius: 6px;
+            margin: 0 auto;
+        }
+        
+        .next-cell {
+            background: #1e1e3f;
+        }
+        
+        .stats {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+        }
+        
+        .stat-value {
+            color: #4fc3f7;
+            font-weight: 600;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .control-btn {
+            padding: 10px;
+            background: #4a4a8a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .control-btn:hover {
+            background: #5a5a9a;
+            transform: translateY(-2px);
+        }
+        
+        .control-btn:active {
+            transform: translateY(0);
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            z-index: 10;
+            display: none;
+        }
+        
+        .game-over h2 {
+            font-size: 32px;
+            color: #ff5252;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 82, 82, 0.7);
+        }
+        
+        .game-over p {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            #game-board {
+                width: 280px;
+                height: 560px;
+            }
+            
+            .info-panel {
+                min-width: 280px;
+                max-width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="board-container">
+            <div id="game-board"></div>
+            <div class="game-over" id="game-over">
+                <h2>ИГРА ОКОНЧЕНА</h2>
+                <p>Ваш счёт: <span id="final-score">0</span></p>
+                <button class="control-btn" id="restart-btn">Начать заново</button>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="panel-section">
+                <div class="panel-title">Следующая фигура</div>
+                <div id="next-piece"></div>
+            </div>
+            
+            <div class="panel-section stats">
+                <div class="panel-title">Статистика</div>
+                <div class="stat">
+                    <span>Счёт:</span>
+                    <span class="stat-value" id="score">0</span>
+                </div>
+                <div class="stat">
+                    <span>Уровень:</span>
+                    <span class="stat-value" id="level">1</span>
+                </div>
+                <div class="stat">
+                    <span>Линии:</span>
+                    <span class="stat-value" id="lines">0</span>
+                </div>
+            </div>
+            
+            <div class="panel-section controls">
+                <div class="panel-title">Управление</div>
+                <button class="control-btn" id="start-btn">Старт</button>
+                <button class="control-btn" id="pause-btn">Пауза</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация игры
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 30;
+        const EMPTY = 'empty';
+        
+        // Фигуры Тетриса
+        const SHAPES = [
+            { name: 'I', color: 'I', shape: [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]] },
+            { name: 'J', color: 'J', shape: [[1,0,0], [1,1,1], [0,0,0]] },
+            { name: 'L', color: 'L', shape: [[0,0,1], [1,1,1], [0,0,0]] },
+            { name: 'O', color: 'O', shape: [[1,1], [1,1]] },
+            { name: 'S', color: 'S', shape: [[0,1,1], [1,1,0], [0,0,0]] },
+            { name: 'T', color: 'T', shape: [[0,1,0], [1,1,1], [0,0,0]] },
+            { name: 'Z', color: 'Z', shape: [[1,1,0], [0,1,1], [0,0,0]] }
+        ];
+        
+        // Инициализация игры
+        let board = [];
+        let currentPiece = null;
+        let nextPiece = null;
+        let score = 0;
+        let level = 1;
+        let lines = 0;
+        let gameOver = false;
+        let isPaused = false;
+        let dropInterval = null;
+        let dropSpeed = 1000; // Начальная скорость (мс)
+        
+        // DOM элементы
+        const gameBoard = document.getElementById('game-board');
+        const nextPieceDisplay = document.getElementById('next-piece');
+        const scoreDisplay = document.getElementById('score');
+        const levelDisplay = document.getElementById('level');
+        const linesDisplay = document.getElementById('lines');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        // Инициализация доски
+        function initBoard() {
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+            renderBoard();
+        }
+        
+        // Создание новой фигуры
+        function createPiece() {
+            const randomIndex = Math.floor(Math.random() * SHAPES.length);
+            const shape = SHAPES[randomIndex];
+            return {
+                name: shape.name,
+                color: shape.color,
+                shape: shape.shape,
+                x: Math.floor(COLS / 2) - Math.floor(shape.shape[0].length / 2),
+                y: 0
+            };
+        }
+        
+        // Проверка коллизии
+        function checkCollision(piece, offsetX = 0, offsetY = 0) {
+            for (let y = 0; y < piece.shape.length; y++) {
+                for (let x = 0; x < piece.shape[y].length; x++) {
+                    if (piece.shape[y][x] !== 0) {
+                        const newX = piece.x + x + offsetX;
+                        const newY = piece.y + y + offsetY;
+                        
+                        if (
+                            newX < 0 || 
+                            newX >= COLS || 
+                            newY >= ROWS ||
+                            (newY >= 0 && board[newY][newX] !== EMPTY)
+                        ) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Фиксация фигуры на доске
+        function lockPiece() {
+            for (let y = 0; y < currentPiece.shape.length; y++) {
+                for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                    if (currentPiece.shape[y][x] !== 0) {
+                        const boardY = currentPiece.y + y;
+                        const boardX = currentPiece.x + x;
+                        if (boardY >= 0) {
+                            board[boardY][boardX] = currentPiece.color;
+                        }
+                    }
+                }
+            }
+            
+            // Проверка заполненных линий
+            clearLines();
+            
+            // Создание новой фигуры
+            currentPiece = nextPiece;
+            nextPiece = createPiece();
+            renderNextPiece();
+            
+            // Проверка окончания игры
+            if (checkCollision(currentPiece)) {
+                endGame();
+            }
+        }
+        
+        // Очистка заполненных линий
+        function clearLines() {
+            let linesCleared = 0;
+            
+            for (let y = ROWS - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell !== EMPTY)) {
+                    // Удаляем линию
+                    board.splice(y, 1);
+                    // Добавляем новую пустую линию сверху
+                    board.unshift(Array(COLS).fill(EMPTY));
+                    linesCleared++;
+                    y++; // Проверяем ту же строку снова
+                }
+            }
+            
+            if (linesCleared > 0) {
+                // Обновление счёта
+                const points = [0, 40, 100, 300, 1200]; // Система счёта Nintendo
+                score += points[linesCleared] * level;
+                lines += linesCleared;
+                level = Math.floor(lines / 10) + 1;
+                dropSpeed = Math.max(100, 1000 - (level - 1) * 100);
+                
+                updateStats();
+                
+                // Обновление скорости падения
+                if (dropInterval) {
+                    clearInterval(dropInterval);
+                    dropInterval = setInterval(moveDown, dropSpeed);
+                }
+            }
+        }
+        
+        // Перемещение фигуры
+        function moveDown() {
+            if (gameOver || isPaused) return;
+            
+            if (!checkCollision(currentPiece, 0, 1)) {
+                currentPiece.y++;
+                renderBoard();
+            } else {
+                lockPiece();
+                renderBoard();
+            }
+        }
+        
+        function moveLeft() {
+            if (gameOver || isPaused) return;
+            if (!checkCollision(currentPiece, -1, 0)) {
+                currentPiece.x--;
+                renderBoard();
+            }
+        }
+        
+        function moveRight() {
+            if (gameOver || isPaused) return;
+            if (!checkCollision(currentPiece, 1, 0)) {
+                currentPiece.x++;
+                renderBoard();
+            }
+        }
+        
+        function rotate() {
+            if (gameOver || isPaused) return;
+            
+            // Создаём копию фигуры для поворота
+            const rotated = [];
+            for (let i = 0; i < currentPiece.shape[0].length; i++) {
+                rotated.push([]);
+                for (let j = currentPiece.shape.length - 1; j >= 0; j--) {
+                    rotated[i].push(currentPiece.shape[j][i]);
+                }
+            }
+            
+            const originalShape = currentPiece.shape;
+            currentPiece.shape = rotated;
+            
+            // Если коллизия после поворота, отменяем
+            if (checkCollision(currentPiece)) {
+                currentPiece.shape = originalShape;
+            }
+            
+            renderBoard();
+        }
+        
+        function hardDrop() {
+            if (gameOver || isPaused) return;
+            while (!checkCollision(currentPiece, 0, 1)) {
+                currentPiece.y++;
+            }
+            lockPiece();
+            renderBoard();
+        }
+        
+        // Рендеринг доски
+        function renderBoard() {
+            // Очистка доски
+            gameBoard.innerHTML = '';
+            
+            // Создание ячеек
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (board[y][x] !== EMPTY) {
+                        cell.classList.add(`cell-${board[y][x]}`);
+                    }
+                    gameBoard.appendChild(cell);
+                }
+            }
+            
+            // Рендеринг текущей фигуры
+            if (currentPiece) {
+                for (let y = 0; y < currentPiece.shape.length; y++) {
+                    for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                        if (currentPiece.shape[y][x] !== 0) {
+                            const boardY = currentPiece.y + y;
+                            const boardX = currentPiece.x + x;
+                            if (boardY >= 0 && boardY < ROWS && boardX >= 0 && boardX < COLS) {
+                                const index = boardY * COLS + boardX;
+                                const cell = gameBoard.children[index];
+                                if (cell) {
+                                    cell.classList.add(`cell-${currentPiece.color}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Рендеринг следующей фигуры
+        function renderNextPiece() {
+            nextPieceDisplay.innerHTML = '';
+            
+            // Создаём сетку 4x4
+            for (let i = 0; i < 16; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'next-cell';
+                nextPieceDisplay.appendChild(cell);
+            }
+            
+            if (nextPiece) {
+                const offsetX = Math.floor((4 - nextPiece.shape[0].length) / 2);
+                const offsetY = Math.floor((4 - nextPiece.shape.length) / 2);
+                
+                for (let y = 0; y < nextPiece.shape.length; y++) {
+                    for (let x = 0; x < nextPiece.shape[y].length; x++) {
+                        if (nextPiece.shape[y][x] !== 0) {
+                            const index = (offsetY + y) * 4 + (offsetX + x);
+                            const cell = nextPieceDisplay.children[index];
+                            if (cell) {
+                                cell.classList.add(`cell-${nextPiece.color}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Обновление статистики
+        function updateStats() {
+            scoreDisplay.textContent = score;
+            levelDisplay.textContent = level;
+            linesDisplay.textContent = lines;
+        }
+        
+        // Запуск игры
+        function startGame() {
+            if (gameOver) {
+                initBoard();
+                score = 0;
+                level = 1;
+                lines = 0;
+                dropSpeed = 1000;
+                gameOver = false;
+                isPaused = false;
+                gameOverScreen.style.display = 'none';
+                updateStats();
+            }
+            
+            if (!currentPiece) {
+                currentPiece = createPiece();
+                nextPiece = createPiece();
+                renderNextPiece();
+            }
+            
+            if (dropInterval) {
+                clearInterval(dropInterval);
+            }
+            dropInterval = setInterval(moveDown, dropSpeed);
+            startBtn.textContent = 'Перезапуск';
+        }
+        
+        // Пауза игры
+        function togglePause() {
+            if (gameOver) return;
+            
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Продолжить' : 'Пауза';
+            
+            if (isPaused) {
+                clearInterval(dropInterval);
+            } else {
+                dropInterval = setInterval(moveDown, dropSpeed);
+            }
+        }
+        
+        // Окончание игры
+        function endGame() {
+            gameOver = true;
+            clearInterval(dropInterval);
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Обработка клавиш
+        function handleKeydown(e) {
+            if (gameOver) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    moveLeft();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    moveRight();
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    moveDown();
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    rotate();
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    hardDrop();
+                    break;
+                case 'p':
+                case 'P':
+                    e.preventDefault();
+                    togglePause();
+                    break;
+            }
+        }
+        
+        // Инициализация
+        function init() {
+            initBoard();
+            
+            // Обработчики событий
+            document.addEventListener('keydown', handleKeydown);
+            startBtn.addEventListener('click', startGame);
+            pauseBtn.addEventListener('click', togglePause);
+            restartBtn.addEventListener('click', startGame);
+        }
+        
+        // Запуск игры
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
